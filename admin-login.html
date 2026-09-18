@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login | NOVA STORE</title><link rel="stylesheet" href="style.css"></head><body><div class="form-wrap"><div class="form-card"><div class="center"><div class="logo">NOVA <span>ADMIN</span></div><p class="muted">Secure staff access</p></div><form id="form"><div class="field"><label>Email</label><input id="email" type="email" required></div><div class="field"><label>Password</label><input id="password" type="password" required></div><button>Sign In</button></form><p class="center" style="margin-top:18px"><a style="color:#64748b" href="index.html">← Store</a></p></div></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><script>
+document.getElementById("form").addEventListener("submit",async e=>{
+ e.preventDefault();const {error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+ if(error){alert(error.message);return}
+ const u=await currentUser(),p=await profileFor(u.id);
+ if(p?.role!=="admin"){await client.auth.signOut();alert("This account does not have admin access.");return}
+ location.href="admin.html";
+});
+</script></body></html>

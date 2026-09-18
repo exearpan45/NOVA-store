@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NOVA STORE</title><link rel="stylesheet" href="style.css"></head><body><div class="topbar">Free delivery on orders above ₹999</div><nav class="nav"><a class="logo" href="index.html">NOVA <span>STORE</span></a><input class="search" id="search" placeholder="Search products..."><div class="nav-buttons"><a class="nav-btn cart-btn" href="cart.html">Cart 🛒 <span data-cart-count>0</span></a><div data-auth-area></div></div></nav><section class="hero"><div><p class="muted">WELCOME TO NOVA STORE</p><h1>Shop.<br>Discover.<br><span style="color:#6366f1">Enjoy.</span></h1><p>Simple, modern shopping for your everyday tech and lifestyle needs.</p><a class="nav-btn primary" href="#products">Explore Products</a></div><div class="hero-card"><div style="font-size:48px">✦</div><h2>NOVA PICKS</h2><p style="color:#cbd5e1">Curated products with a clean shopping experience.</p></div></section><main class="container"><div class="section-title"><h2>Categories</h2></div><div class="categories" id="categories"></div><div class="section-title" id="products"><h2>Featured Products</h2><span class="muted" id="count"></span></div><div class="grid" id="productGrid"><div class="empty">Loading products...</div></div></main><footer class="footer">NOVA STORE<br><br>© 2026 Copyright Arpan Goswami. All rights reserved.</footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><script>
+let allProducts=[];
+let selectedCategory="All";
+async function start(){
+  await renderNavAuth(); updateCartCount();
+  try{allProducts=await getProducts(); renderCategories(); renderProducts();}
+  catch(e){document.getElementById("productGrid").innerHTML='<div class="empty">Could not load products. Check your Supabase setup.</div>'; console.error(e);}
+}
+function renderCategories(){
+ const cats=["All",...new Set(allProducts.map(p=>p.category))];
+ document.getElementById("categories").innerHTML=cats.map(c=>`<button class="chip ${c===selectedCategory?'active':''}" onclick="selectCat('${escapeHtml(c)}')">${escapeHtml(c)}</button>`).join("");
+}
+function selectCat(c){selectedCategory=c;renderCategories();renderProducts();}
+function renderProducts(){
+ const q=(document.getElementById("search").value||"").toLowerCase();
+ const list=allProducts.filter(p=>(selectedCategory==="All"||p.category===selectedCategory)&&(`${p.name} ${p.description} ${p.category}`.toLowerCase().includes(q)));
+ document.getElementById("count").textContent=list.length+" products";
+ document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-image">${p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}">`:"🛍️"}</div><h3>${escapeHtml(p.name)}</h3><p class="muted">${escapeHtml(p.category)}</p><div class="price">${money(p.price)}</div><button class="add-btn" onclick='addToCart(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Add to Cart</button></article>`).join(""):'<div class="empty">No products found.</div>';
+}
+document.getElementById("search").addEventListener("input",renderProducts); start();
+</script></body></html>

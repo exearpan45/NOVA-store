@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout | NOVA STORE</title><link rel="stylesheet" href="style.css"></head><body><div class="topbar">Free delivery on orders above ₹999</div><nav class="nav"><a class="logo" href="index.html">NOVA <span>STORE</span></a><input class="search" id="search" placeholder="Search products..."><div class="nav-buttons"><a class="nav-btn cart-btn" href="cart.html">Cart 🛒 <span data-cart-count>0</span></a><div data-auth-area></div></div></nav><main class="container"><div class="section-title"><h1>Checkout</h1></div><div class="two-col"><form class="form-card" id="form"><h2>Delivery Details</h2><div class="field"><label>Full Name</label><input id="name" required></div><div class="field"><label>Email</label><input id="email" type="email" required></div><div class="field"><label>Delivery Address</label><textarea id="address" rows="5" required></textarea></div><button>Place Order</button><p class="muted" style="margin-top:12px">Payment method: Cash on Delivery (demo checkout).</p></form><aside class="summary"><h2>Order Total</h2><div><span>Subtotal</span><strong id="sub"></strong></div><div><span>Delivery</span><strong id="del"></strong></div><div class="total"><span>Total</span><strong id="total"></strong></div></aside></div></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><script>
+async function start(){
+ const u=await currentUser();if(!u){location.href="login.html";return}
+ const p=await profileFor(u.id);document.getElementById("name").value=p?.full_name||u.user_metadata?.full_name||"";document.getElementById("email").value=u.email||"";
+ const t=cartTotals();document.getElementById("sub").textContent=money(t.subtotal);document.getElementById("del").textContent=t.delivery?money(t.delivery):"FREE";document.getElementById("total").textContent=money(t.total);
+}
+document.getElementById("form").addEventListener("submit",async e=>{
+ e.preventDefault();const u=await currentUser(),c=getCart();if(!u||!c.length)return;
+ const t=cartTotals();
+ const {data:order,error}=await client.from("orders").insert({user_id:u.id,customer_name:document.getElementById("name").value.trim(),email:document.getElementById("email").value.trim(),total:t.total,address:document.getElementById("address").value.trim()}).select().single();
+ if(error){alert(error.message);return}
+ const {error:itemError}=await client.from("order_items").insert(c.map(x=>({order_id:order.id,product_id:x.id,product_name:x.name,price:x.price,quantity:x.quantity})));
+ if(itemError){alert(itemError.message);return}
+ localStorage.removeItem("novaCart");location.href="orders.html";
+});start();renderNavAuth();updateCartCount();
+</script></body></html>

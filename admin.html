@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NOVA ADMIN</title><link rel="stylesheet" href="style.css"></head><body><div class="admin-layout"><aside class="sidebar"><h2>NOVA<span style="color:#818cf8">ADMIN</span></h2><a class="side-link active" href="admin.html">Dashboard</a><a class="side-link" href="#products">Products</a><a class="side-link" href="#orders">Orders</a><a class="side-link" href="#customers">Customers</a><a class="side-link" href="index.html">View Store</a><button class="side-link" id="logout" style="border:0;background:transparent;color:#fff;width:100%;text-align:left;cursor:pointer">Logout</button></aside><main class="admin-main"><h1>Dashboard</h1><p class="muted">Manage your NOVA STORE.</p><div class="stats"><div class="stat">Products<strong id="productsCount">0</strong></div><div class="stat">Orders<strong id="ordersCount">0</strong></div><div class="stat">Customers<strong id="customersCount">0</strong></div><div class="stat">Sales<strong id="sales">₹0</strong></div></div><section id="products"><div class="section-title"><h2>Products</h2></div><form id="productForm" class="form-card" style="width:100%;margin-bottom:20px"><input type="hidden" id="pid"><div class="two-col"><div><div class="field"><label>Name</label><input id="pname" required></div><div class="field"><label>Category</label><input id="pcat" required></div><div class="field"><label>Price</label><input id="pprice" type="number" min="0" required></div></div><div><div class="field"><label>Stock</label><input id="pstock" type="number" min="0" required></div><div class="field"><label>Image URL</label><input id="pimage"></div><div class="field"><label>Description</label><input id="pdesc"></div></div></div><button id="saveProduct" type="submit">Add Product</button><button id="cancelEdit" type="button" class="nav-btn" style="margin-top:22px;display:none">Cancel Edit</button></form><div class="table-wrap"><table class="table"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead><tbody id="productRows"></tbody></table></div></section><section id="orders" style="margin-top:45px"><div class="section-title"><h2>Orders</h2></div><div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="orderRows"></tbody></table></div></section><section id="customers" style="margin-top:45px"><div class="section-title"><h2>Customers</h2></div><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead><tbody id="customerRows"></tbody></table></div></section></main></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><script>
+let products=[],orders=[];
+async function guard(){
+ const u=await currentUser();if(!u){location.href="admin-login.html";return false}
+ const p=await profileFor(u.id);if(p?.role!=="admin"){await client.auth.signOut();location.href="admin-login.html";return false}
+ return true;
+}
+async function load(){
+ if(!(await guard()))return;
+ const [pr,or,cu]=await Promise.all([
+  client.from("products").select("*").order("created_at",{ascending:false}),
+  client.from("orders").select("*").order("created_at",{ascending:false}),
+  client.from("profiles").select("*").eq("role","customer").order("created_at",{ascending:false})
+ ]);
+ products=pr.data||[];orders=or.data||[];
+ productsCount.textContent=products.length;ordersCount.textContent=orders.length;customersCount.textContent=(cu.data||[]).length;sales.textContent=money(orders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+Number(o.total),0));
+ productRows.innerHTML=products.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td><button class="small-btn" onclick="editProduct(${p.id})">Edit</button> <button class="small-btn danger" onclick="deleteProduct(${p.id})">Delete</button></td></tr>`).join("");
+ orderRows.innerHTML=orders.map(o=>`<tr><td>#${o.id}</td><td>${escapeHtml(o.customer_name)}<br><span class="muted">${escapeHtml(o.email)}</span></td><td>${money(o.total)}</td><td><select onchange="updateOrder(${o.id},this.value)">${["Pending","Confirmed","Shipped","Delivered","Cancelled"].map(s=>`<option ${s===o.status?"selected":""}>${s}</option>`).join("")}</select></td><td>${escapeHtml(new Date(o.created_at).toLocaleDateString("en-IN"))}</td></tr>`).join("");
+ customerRows.innerHTML=(cu.data||[]).map(c=>`<tr><td>${escapeHtml(c.full_name||"—")}</td><td>${escapeHtml(c.email||"")}</td><td>${escapeHtml(new Date(c.created_at).toLocaleDateString("en-IN"))}</td></tr>`).join("");
+}
+productForm.addEventListener("submit",async e=>{
+ e.preventDefault();const id=pid.value;const payload={name:pname.value.trim(),category:pcat.value.trim(),price:Number(pprice.value),stock:Number(pstock.value),image_url:pimage.value.trim(),description:pdesc.value.trim()};
+ const r=id?await client.from("products").update(payload).eq("id",id):await client.from("products").insert(payload);
+ if(r.error)alert(r.error.message);else{productForm.reset();pid.value="";saveProduct.textContent="Add Product";cancelEdit.style.display="none";load();}
+});
+function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;pid.value=p.id;pname.value=p.name;pcat.value=p.category;pprice.value=p.price;pstock.value=p.stock;pimage.value=p.image_url||"";pdesc.value=p.description||"";saveProduct.textContent="Update Product";cancelEdit.style.display="inline-block";scrollTo({top:0,behavior:"smooth"});}
+cancelEdit.onclick=()=>{productForm.reset();pid.value="";saveProduct.textContent="Add Product";cancelEdit.style.display="none"};
+async function deleteProduct(id){if(!confirm("Delete this product?"))return;const {error}=await client.from("products").delete().eq("id",id);if(error)alert(error.message);else load();}
+async function updateOrder(id,status){const {error}=await client.from("orders").update({status}).eq("id",id);if(error)alert(error.message);else toast("Order updated");}
+logout.onclick=async()=>{await client.auth.signOut();location.href="admin-login.html"};load();
+</script></body></html>

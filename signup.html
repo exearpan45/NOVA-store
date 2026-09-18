@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create Account | NOVA STORE</title><link rel="stylesheet" href="style.css"></head><body><div class="form-wrap"><div class="form-card"><div class="center"><div class="logo">NOVA <span>STORE</span></div><p class="muted">Create your customer account</p></div><form id="form"><div class="field"><label>Full Name</label><input id="name" required></div><div class="field"><label>Email</label><input id="email" type="email" required></div><div class="field"><label>Password</label><input id="password" type="password" minlength="6" required></div><button>Create Account</button></form><p class="center muted" style="margin-top:18px">Already have an account? <a style="color:#6366f1;font-weight:800" href="login.html">Login</a></p></div></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><script>
+document.getElementById("form").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const name=document.getElementById("name").value.trim(),email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
+ const {error}=await client.auth.signUp({email,password,options:{data:{full_name:name}}});
+ if(error){alert(error.message);return}
+ alert("Account created successfully! Check your email if confirmation is required.");
+ location.href="login.html";
+});
+</script></body></html>

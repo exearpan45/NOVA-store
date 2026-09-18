@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Profile | NOVA STORE</title><link rel="stylesheet" href="style.css"></head><body><div class="topbar">Free delivery on orders above ₹999</div><nav class="nav"><a class="logo" href="index.html">NOVA <span>STORE</span></a><input class="search" id="search" placeholder="Search products..."><div class="nav-buttons"><a class="nav-btn cart-btn" href="cart.html">Cart 🛒 <span data-cart-count>0</span></a><div data-auth-area></div></div></nav><main class="container"><div class="form-card"><h1>My Profile</h1><div id="content">Loading...</div></div></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><script>
+async function start(){
+ const u=await currentUser();if(!u){location.href="login.html";return}
+ const p=await profileFor(u.id);
+ document.getElementById("content").innerHTML=`<div class="field"><label>Full Name</label><input id="name" value="${escapeHtml(p?.full_name||u.user_metadata?.full_name||"")}"></div><div class="field"><label>Email</label><input value="${escapeHtml(u.email||"")}" disabled></div><button id="save" style="width:100%;margin-top:22px;padding:14px;border:0;border-radius:12px;background:#6366f1;color:#fff;font-weight:800">Save Profile</button><p style="margin-top:20px"><a style="color:#6366f1;font-weight:800" href="orders.html">View My Orders →</a></p>`;
+ document.getElementById("save").onclick=async()=>{const {error}=await client.from("profiles").update({full_name:document.getElementById("name").value.trim()}).eq("id",u.id);if(error)alert(error.message);else toast("Profile saved")};
+}
+start();renderNavAuth();updateCartCount();
+</script></body></html>
