@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product | NOVA STORE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div class="logo">NOVA STORE</div>
+
+    <div class="nav-actions">
+      <a href="index.html">Home</a>
+      <a href="cart.html">🛒 Cart</a>
+      <a href="orders.html">📦 Orders</a>
+    </div>
+  </nav>
+
+  <main class="product-page">
+
+    <div id="productContainer">
+      <p>Loading product...</p>
+    </div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get("id");
+
+    async function loadProduct() {
+
+      if (!productId) {
+        document.getElementById("productContainer").innerHTML =
+          "<h2>Product not found</h2>";
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from("products")
+        .select("*")
+        .eq("id", productId)
+        .single();
+
+      if (error || !data) {
+        document.getElementById("productContainer").innerHTML =
+          "<h2>Product not found</h2>";
+        return;
+      }
+
+      const image = data.image_url ||
+        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900";
+
+      document.getElementById("productContainer").innerHTML = `
+        <div class="product-detail-card">
+
+          <div class="product-detail-image">
+            <img src="${image}" alt="${escapeHtml(data.name)}">
+          </div>
+
+          <div class="product-detail-info">
+
+            <span class="product-category">
+              ${escapeHtml(data.category || "Product")}
+            </span>
+
+            <h1>${escapeHtml(data.name)}</h1>
+
+            <div class="product-detail-price">
+              ₹${Number(data.price).toLocaleString("en-IN")}
+            </div>
+
+            <p class="product-description">
+              ${escapeHtml(data.description || "No description available.")}
+            </p>
+
+            <p>
+              <strong>Stock:</strong>
+              ${data.stock > 0 ? data.stock + " available" : "Out of stock"}
+            </p>
+
+            <div class="quantity-box">
+              <button onclick="changeProductQty(-1)">−</button>
+              <span id="productQty">1</span>
+              <button onclick="changeProductQty(1)">+</button>
+            </div>
+
+            <div class="product-buttons">
+              <button
+                class="primary-btn"
+                onclick="addProductToCart()"
+                ${data.stock <= 0 ? "disabled" : ""}>
+                🛒 Add to Cart
+              </button>
+
+              <button
+                class="secondary-btn"
+                onclick="buyNow()"
+                ${data.stock <= 0 ? "disabled" : ""}>
+                ⚡ Buy Now
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      `;
+
+      window.currentProduct = data;
+    }
+
+    let productQty = 1;
+
+    function changeProductQty(amount) {
+      if (!window.currentProduct) return;
+
+      productQty += amount;
+
+      if (productQty < 1) productQty = 1;
+      if (productQty > window.currentProduct.stock) {
+        productQty = window.currentProduct.stock;
+      }
+
+      document.getElementById("productQty").textContent = productQty;
+    }
+
+    function addProductToCart() {
+
+      if (!window.currentProduct) return;
+
+      for (let i = 0; i < productQty; i++) {
+        addToCart(window.currentProduct);
+      }
+
+      showToast("Added to cart 🛒");
+    }
+
+    function buyNow() {
+
+      if (!window.currentProduct) return;
+
+      for (let i = 0; i < productQty; i++) {
+        addToCart(window.currentProduct);
+      }
+
+      window.location.href = "cart.html";
+    }
+
+    loadProduct();
+  </script>
+
+</body>
+</html>
